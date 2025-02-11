@@ -5,10 +5,17 @@ import {
   Image,
   StatusBar,
   FlatList,
+  TouchableOpacity,
+  Modal,
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { useState } from "react";
+import * as ImagePicker from "expo-image-picker";
 
-const profilePicture = require("../../assets/images/avatar.jpeg");
+const imagePlaceholder = require("../../assets/images/profile-placeholder.jpeg");
+const CAMERA_OPTION = "Photo-camera";
+const GALLERY_OPTION = "photo-library";
+const DELETE_OPTION = "delete";
 
 // 🔹 Array of categories with corresponding MaterialIcons
 const categories = [
@@ -39,24 +46,127 @@ const categories = [
 ];
 
 export default function Profile() {
+  const [showChooseImageModal, setShowChooseImageModal] = useState(false);
+  const [image, setImage] = useState(null); // Initialize to null
+
+  const uploadOptions = [
+    { label: "Camera", name: CAMERA_OPTION },
+    { label: "Gallery", name: GALLERY_OPTION },
+    { label: "Remove", name: DELETE_OPTION },
+  ];
+
+  const uploadImage = async (option) => {
+    setShowChooseImageModal(false); // Close modal immediately
+
+    if (option === CAMERA_OPTION) {
+      try {
+        await ImagePicker.requestCameraPermissionsAsync();
+        let result = await ImagePicker.launchCameraAsync({
+          cameraType: ImagePicker.CameraType.front,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 1,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          setImage(result.assets[0].uri);
+        } else {
+          console.warn("No assets found in the result or cancelled");
+        }
+      } catch (error) {
+        alert("Error uploading image: " + error.message);
+      }
+    } else if (option === GALLERY_OPTION) {
+      try {
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+        let result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 1,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          setImage(result.assets[0].uri);
+        } else {
+          console.warn("No assets found in the result or cancelled");
+        }
+      } catch (error) {
+        alert("Error selecting image from gallery: " + error.message);
+      }
+    } else if (option === DELETE_OPTION) {
+      setImage(null); // Clear the image
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <StatusBar hidden />
+      <Modal
+        visible={showChooseImageModal}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.modalContainer}>
+          <TouchableOpacity
+            style={styles.modalBackground}
+            activeOpacity={1}
+            onPress={() => setShowChooseImageModal(false)}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalText}>Profile Photo</Text>
+              <FlatList
+                data={uploadOptions}
+                keyExtractor={(item) => item.name}
+                numColumns={3}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.option}
+                    onPress={() => uploadImage(item.name)}
+                  >
+                    <MaterialIcons
+                      style={styles.optionImage}
+                      name={item.name}
+                      size={30}
+                      color="blue"
+                    />
+                    <Text style={styles.optionText}>{item.label}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+      </Modal>
 
-      {/* 🔹 Top Bar */}
+      <StatusBar hidden />
       <View style={styles.topBar}>
         <Text style={styles.topBarText}>Account</Text>
         <MaterialIcons
-          name={"settings"}
+          name="settings"
           size={24}
           color="white"
-          style={{position: "absolute", right: "20", bottom: "6"}}
+          style={styles.settingsIcon}
         />
       </View>
 
-      {/* 🔹 Profile Section */}
       <View style={styles.pictureSection}>
-        <Image source={profilePicture} style={styles.image} />
+        <View style={styles.imageContainer}>
+          <Image
+            source={image ? { uri: image } : imagePlaceholder}
+            style={styles.image}
+          />
+
+          <TouchableOpacity
+            style={styles.imageUploadButton}
+            onPress={() => setShowChooseImageModal(true)}
+          >
+            <MaterialCommunityIcons
+              name="camera-outline"
+              size={24}
+              color="white"
+            />
+          </TouchableOpacity>
+        </View>
         <Text style={styles.personName}>Tyler Smith</Text>
         <Text style={styles.points}>173 Points</Text>
         <Text style={styles.personRequest}>
@@ -64,18 +174,12 @@ export default function Profile() {
         </Text>
       </View>
 
-      {/* 🔹 List of Categories */}
       <FlatList
         data={categories}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.listItem}>
-            <MaterialIcons
-              name={item.icon}
-              size={24}
-              color="white"
-              style={styles.icon}
-            />
+            <MaterialIcons name={item.icon} size={24} color="blue" />
             <View style={styles.textContainer}>
               <Text style={styles.listTitle}>{item.title}</Text>
               <Text style={styles.listDescription}>{item.description}</Text>
@@ -96,7 +200,6 @@ const styles = StyleSheet.create({
   topBar: {
     height: 70,
     backgroundColor: "rgb(0, 0, 255)",
-    elevation: 20,
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "center",
@@ -107,10 +210,67 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
   },
+  settingsIcon: {
+    position: "absolute",
+    right: 20,
+    bottom: 6,
+  },
+  modalContainer: {
+    flex: 1,
+    minHeight: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalBackground: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    flexDirection: "column",
+    justifyContent: "space-between",
+    backgroundColor: "white",
+    alignItems: "center",
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    gap: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    height: 185,
+  },
+  modalText: {
+    fontSize: 20,
+    marginBottom: 10,
+    fontWeight: "bold",
+  },
+  option: {
+    backgroundColor: "rgba(245, 245, 245, 0.9)",
+    marginHorizontal: 10,
+    flexDirection: "column",
+    alignItems: "center",
+    padding: 10,
+    gap: 8,
+    justifyContent: "space-between",
+  },
+  optionImage: {
+    padding: 5,
+    borderRadius: 10,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+  },
+  optionText: {
+    fontSize: 14,
+    color: "black",
+  },
   pictureSection: {
     marginTop: 50,
     alignItems: "center",
     marginVertical: 20,
+  },
+  imageContainer: {
+    position: "relative",
   },
   image: {
     width: 120,
@@ -119,6 +279,14 @@ const styles = StyleSheet.create({
     resizeMode: "cover",
     borderWidth: 1,
     borderColor: "lightgray",
+  },
+  imageUploadButton: {
+    position: "absolute",
+    right: -10,
+    bottom: -10,
+    backgroundColor: "blue",
+    borderRadius: 20,
+    padding: 8,
   },
   personName: {
     fontSize: 22,
@@ -147,12 +315,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     borderWidth: 1,
     borderColor: "rgb(250, 250, 250)",
-  },
-  icon: {
-    backgroundColor: "rgb(0, 0, 255)",
-    padding: 8,
-    borderRadius: 50,
-    marginRight: 15,
+    gap: 10,
   },
   textContainer: {
     flex: 1,

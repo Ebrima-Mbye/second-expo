@@ -56,6 +56,7 @@ export default function TabLayout() {
         }}
       />
 
+      {/* News */}
       <Tabs.Screen
         name="news"
         options={{
@@ -66,6 +67,17 @@ export default function TabLayout() {
               size={28}
               color={color}
             />
+          ),
+        }}
+      />
+
+      {/* Pokemon */}
+      <Tabs.Screen
+        name="pokemon"
+        options={{
+          title: "Pokemon",
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons name="pokeball" size={28} color={color} />
           ),
         }}
       />

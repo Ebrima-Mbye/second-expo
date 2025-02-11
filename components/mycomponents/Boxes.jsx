@@ -1,6 +1,14 @@
 import { useRouter } from "expo-router";
 import React from "react";
-import { View, Text, FlatList, StyleSheet, Button } from "react-native";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Button,
+  Alert,
+  Pressable,
+} from "react-native";
 import { SafeAreaView } from "react-native";
 
 const COLORS = [
@@ -16,9 +24,12 @@ const COLORS = [
 ];
 
 const Box = ({ color, index }) => (
-  <View style={[styles.box, { backgroundColor: color }]}>
+  <Pressable
+    onPress={() => Alert.alert("Box " + index)}
+    style={[styles.box, { backgroundColor: color }]}
+  >
     <Text style={styles.text}>Box {index + 1}</Text>
-  </View>
+  </Pressable>
 );
 
 const BoxGrid = () => {
@@ -38,7 +49,7 @@ const Boxes = () => {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <BoxGrid />
-      <Button title="go to about" onPress={() => router.push("/about")} />
+      <Button title="go to profile" onPress={() => router.push("/profile")} />
     </SafeAreaView>
   );
 };
